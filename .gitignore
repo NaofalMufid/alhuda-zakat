@@ -1,0 +1,21 @@
+node_modules
+node_modules/
+credentials/
+temp/
+dist/
+coverage/
+
+.env
+.DS_Store
+AGENTS.md
+requirement.md
+
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+server
+app
