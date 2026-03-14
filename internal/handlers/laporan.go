@@ -38,8 +38,9 @@ func (h *LaporanHandler) Kewajiban(w http.ResponseWriter, r *http.Request) {
 	}
 
 	laporan := models.LaporanKewajiban{
-		DetailBeras: make(map[string]float64),
-		DetailUang:  make(map[string]float64),
+		DetailBeras:       make(map[string]float64),
+		DetailBerasAktual: make(map[string]float64),
+		DetailUang:        make(map[string]float64),
 	}
 
 	kkMap := make(map[string]bool)
@@ -54,8 +55,17 @@ func (h *LaporanHandler) Kewajiban(w http.ResponseWriter, r *http.Request) {
 
 		// Calculate based on kategori
 		if strings.Contains(strings.ToLower(t.Kategori), "beras") {
+			// Kewajiban beras (perhitungan)
 			laporan.TotalBerasKg += t.JumlahBerasKg
 			laporan.DetailBeras[t.Kategori] += t.JumlahBerasKg
+
+			// Beras aktual yang diberikan
+			jumlahBerasAktual := t.JumlahBerasAktual
+			if jumlahBerasAktual == 0 {
+				jumlahBerasAktual = t.JumlahBerasKg // Fallback ke kewajiban jika belum ada data aktual
+			}
+			laporan.TotalBerasAktual += jumlahBerasAktual
+			laporan.DetailBerasAktual[t.Kategori] += jumlahBerasAktual
 		} else {
 			// Kewajiban = jumlah_uang - kelebihan
 			kewajiban := t.JumlahUang - t.KelebihanDikembalikan - t.KelebihanAmal
@@ -67,6 +77,8 @@ func (h *LaporanHandler) Kewajiban(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Hitung selisih/kelebihan beras
+	laporan.SelisihBeras = laporan.TotalBerasAktual - laporan.TotalBerasKg
 	laporan.JumlahKK = len(kkMap)
 
 	JSONResponse(w, http.StatusOK, laporan)
@@ -83,12 +95,32 @@ func (h *LaporanHandler) Total(w http.ResponseWriter, r *http.Request) {
 	var laporan models.LaporanTotal
 
 	for _, t := range transaksi {
+		// Kewajiban beras (perhitungan)
 		laporan.TotalBerasKg += t.JumlahBerasKg
+
+		// Beras aktual yang diberikan (gunakan kewajiban jika belum ada data aktual)
+		jumlahBerasAktual := t.JumlahBerasAktual
+		if jumlahBerasAktual == 0 && t.JumlahBerasKg > 0 {
+			jumlahBerasAktual = t.JumlahBerasKg
+		}
+		laporan.TotalBerasAktual += jumlahBerasAktual
+
 		laporan.TotalUang += t.JumlahUang
 		laporan.TotalKelebihanUang += t.KelebihanDikembalikan
 		laporan.TotalAmal += t.KelebihanAmal
+
+		// Hitung per jenis zakat
+		if t.JenisZakat == "fitrah" {
+			laporan.TotalUangFitrah += t.JumlahUang
+			laporan.JumlahTransaksiFitrah++
+		} else if t.JenisZakat == "mal" {
+			laporan.TotalUangMal += t.JumlahUang
+			laporan.JumlahTransaksiMal++
+		}
 	}
 
+	// Hitung selisih/kelebihan beras
+	laporan.SelisihBeras = laporan.TotalBerasAktual - laporan.TotalBerasKg
 	laporan.JumlahTransaksi = len(transaksi)
 
 	JSONResponse(w, http.StatusOK, laporan)

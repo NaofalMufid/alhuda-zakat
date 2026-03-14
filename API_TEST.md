@@ -94,6 +94,7 @@ GET /api/transaksi
 ```json
 [
   {
+    "row_index": 2,
     "tanggal": "2026-03-13T00:00:00Z",
     "nama_kk": "Ahmad Sudirman",
     "jumlah_jiwa": 4,
@@ -107,6 +108,7 @@ GET /api/transaksi
   }
 ]
 ```
+**Note:** `row_index` digunakan untuk mengidentifikasi baris di Google Sheets (dimulai dari 2, karena baris 1 adalah header).
 
 ---
 
@@ -157,7 +159,50 @@ Content-Type: application/json
 
 ---
 
-### 9. Laporan Kewajiban
+### 9. Update Transaksi
+```http
+PUT /api/transaksi/{rowIndex}
+Content-Type: application/json
+
+{
+  "nama_kk": "Ahmad Sudirman",
+  "jumlah_jiwa": 5,
+  "jenis_zakat": "fitrah",
+  "kategori": "uang 1",
+  "jumlah_beras_kg": 0,
+  "jumlah_uang": 175000,
+  "kelebihan_dikembalikan": 0,
+  "kelebihan_amal": 0,
+  "amil_penerima": "Ust. Abdullah"
+}
+```
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Transaksi berhasil diperbarui"
+}
+```
+**Note:** `rowIndex` adalah nomor baris di Google Sheets (sama dengan `row_index` dari Get All Transaksi).
+
+---
+
+### 10. Delete Transaksi
+```http
+DELETE /api/transaksi/{rowIndex}
+```
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Transaksi berhasil dihapus"
+}
+```
+**Note:** `rowIndex` adalah nomor baris di Google Sheets.
+
+---
+
+### 12. Laporan Kewajiban
 ```http
 GET /api/laporan/kewajiban
 ```
@@ -180,7 +225,7 @@ GET /api/laporan/kewajiban
 
 ---
 
-### 10. Laporan Total
+### 13. Laporan Total
 ```http
 GET /api/laporan/total
 ```
@@ -197,7 +242,7 @@ GET /api/laporan/total
 
 ---
 
-### 11. Laporan Gabungan
+### 14. Laporan Gabungan
 ```http
 GET /api/laporan/gabungan
 ```

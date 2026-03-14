@@ -166,25 +166,27 @@ func (c *Client) GetAmil() ([]models.Amil, error) {
 }
 
 // GetTransaksi retrieves all data from "transaksi" sheet
-// Structure: tanggal | nama_kk | jumlah_jiwa | jenis_zakat | kategori | jumlah_beras_kg | jumlah_uang | kelebihan_dikembalikan | kelebihan_amal | amil_penerima
+// Structure: tanggal | nama_kk | jumlah_jiwa | jenis_zakat | kategori | jumlah_beras_kg | jumlah_beras_aktual | jumlah_uang | kelebihan_dikembalikan | kelebihan_amal | amil_penerima
 func (c *Client) GetTransaksi() ([]models.Transaksi, error) {
-	rangeName := "transaksi!A2:J"
+	rangeName := "transaksi!A2:K"
 	resp, err := c.srv.Spreadsheets.Values.Get(c.spreadsheetID, rangeName).Do()
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve transaksi data: %v", err)
 	}
 
 	var transaksi []models.Transaksi
-	for _, row := range resp.Values {
+	// Row index dimulai dari 2 (baris 1 adalah header)
+	for i, row := range resp.Values {
 		if len(row) < 4 {
 			continue
 		}
 
 		t := models.Transaksi{
+			RowIndex:     i + 2, // +2 karena data mulai dari baris 2
 			NamaKK:       getString(row, 1),
 			JenisZakat:   getString(row, 3),
 			Kategori:     getString(row, 4),
-			AmilPenerima: getString(row, 9),
+			AmilPenerima: getString(row, 10),
 		}
 
 		// Parse tanggal
@@ -197,17 +199,20 @@ func (c *Client) GetTransaksi() ([]models.Transaksi, error) {
 			t.JumlahJiwa = jiwa
 		}
 
-		// Parse jumlah_beras_kg
+		// Parse jumlah_beras_kg (kewajiban)
 		t.JumlahBerasKg = parseNumber(getString(row, 5))
 
+		// Parse jumlah_beras_aktual (yang benar-benar diberikan)
+		t.JumlahBerasAktual = parseNumber(getString(row, 6))
+
 		// Parse jumlah_uang
-		t.JumlahUang = parseCurrency(getString(row, 6))
+		t.JumlahUang = parseCurrency(getString(row, 7))
 
 		// Parse kelebihan_dikembalikan
-		t.KelebihanDikembalikan = parseCurrency(getString(row, 7))
+		t.KelebihanDikembalikan = parseCurrency(getString(row, 8))
 
 		// Parse kelebihan_amal
-		t.KelebihanAmal = parseCurrency(getString(row, 8))
+		t.KelebihanAmal = parseCurrency(getString(row, 9))
 
 		transaksi = append(transaksi, t)
 	}
@@ -217,7 +222,13 @@ func (c *Client) GetTransaksi() ([]models.Transaksi, error) {
 
 // AddTransaksi adds a new transaction to "transaksi" sheet
 func (c *Client) AddTransaksi(input models.TransaksiInput) error {
-	rangeName := "transaksi!A:J"
+	rangeName := "transaksi!A:K"
+
+	// Jika jumlah_beras_aktual 0, gunakan jumlah_beras_kg sebagai default
+	jumlahBerasAktual := input.JumlahBerasAktual
+	if jumlahBerasAktual == 0 && input.JumlahBerasKg > 0 {
+		jumlahBerasAktual = input.JumlahBerasKg
+	}
 
 	row := []interface{}{
 		time.Now().Format("2006-01-02"),
@@ -225,7 +236,8 @@ func (c *Client) AddTransaksi(input models.TransaksiInput) error {
 		input.JumlahJiwa,
 		input.JenisZakat,
 		input.Kategori,
-		input.JumlahBerasKg,
+		input.JumlahBerasKg, // Kewajiban perhitungan
+		jumlahBerasAktual,   // Beras yang benar-benar diberikan
 		input.JumlahUang,
 		input.KelebihanDikembalikan,
 		input.KelebihanAmal,
@@ -244,6 +256,63 @@ func (c *Client) AddTransaksi(input models.TransaksiInput) error {
 
 	if err != nil {
 		return fmt.Errorf("unable to append transaksi: %v", err)
+	}
+
+	return nil
+}
+
+// UpdateTransaksi updates an existing transaction in "transaksi" sheet
+func (c *Client) UpdateTransaksi(rowIndex int, input models.TransaksiInput) error {
+	// Row index sudah dalam format 1-based (baris 1 = header, baris 2 = data pertama)
+	rangeName := fmt.Sprintf("transaksi!A%d:K%d", rowIndex, rowIndex)
+
+	// Jika jumlah_beras_aktual 0, gunakan jumlah_beras_kg sebagai default
+	jumlahBerasAktual := input.JumlahBerasAktual
+	if jumlahBerasAktual == 0 && input.JumlahBerasKg > 0 {
+		jumlahBerasAktual = input.JumlahBerasKg
+	}
+
+	row := []interface{}{
+		time.Now().Format("2006-01-02"),
+		input.NamaKK,
+		input.JumlahJiwa,
+		input.JenisZakat,
+		input.Kategori,
+		input.JumlahBerasKg, // Kewajiban perhitungan
+		jumlahBerasAktual,   // Beras yang benar-benar diberikan
+		input.JumlahUang,
+		input.KelebihanDikembalikan,
+		input.KelebihanAmal,
+		input.AmilPenerima,
+	}
+
+	valueRange := &sheets.ValueRange{
+		Values: [][]interface{}{row},
+	}
+
+	_, err := c.srv.Spreadsheets.Values.Update(
+		c.spreadsheetID,
+		rangeName,
+		valueRange,
+	).ValueInputOption("USER_ENTERED").Do()
+
+	if err != nil {
+		return fmt.Errorf("unable to update transaksi: %v", err)
+	}
+
+	return nil
+}
+
+// DeleteTransaksi deletes a transaction from "transaksi" sheet by clearing the row
+func (c *Client) DeleteTransaksi(rowIndex int) error {
+	// Row index sudah dalam format 1-based
+	rangeName := fmt.Sprintf("transaksi!A%d:K%d", rowIndex, rowIndex)
+
+	// Clear values
+	clearRequest := &sheets.ClearValuesRequest{}
+	_, err := c.srv.Spreadsheets.Values.Clear(c.spreadsheetID, rangeName, clearRequest).Do()
+	if err != nil {
+		return fmt.Errorf("unable to clear transaksi row: %v", err)
 	}
 
 	return nil
@@ -396,7 +465,7 @@ func (c *Client) EnsureSheetsExist() error {
 		// Add headers
 		headers := [][]interface{}{{
 			"tanggal", "nama_kk", "jumlah_jiwa", "jenis_zakat", "kategori",
-			"jumlah_beras_kg", "jumlah_uang", "kelebihan_dikembalikan",
+			"jumlah_beras_kg", "jumlah_beras_aktual", "jumlah_uang", "kelebihan_dikembalikan",
 			"kelebihan_amal", "amil_penerima",
 		}}
 		valueRange := &sheets.ValueRange{
@@ -404,7 +473,7 @@ func (c *Client) EnsureSheetsExist() error {
 		}
 		_, err = c.srv.Spreadsheets.Values.Update(
 			c.spreadsheetID,
-			"transaksi!A1:J1",
+			"transaksi!A1:K1",
 			valueRange,
 		).ValueInputOption("USER_ENTERED").Do()
 		if err != nil {
