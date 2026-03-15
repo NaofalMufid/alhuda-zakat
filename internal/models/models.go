@@ -4,6 +4,15 @@ import "time"
 
 // Penduduk represents data from sheet "penduduk"
 type Penduduk struct {
+	RowIndex   int    `json:"row_index"` // Row index di Google Sheets
+	NamaKK     string `json:"nama_kk"`
+	JumlahJiwa int    `json:"jumlah_jiwa"`
+	RT         string `json:"rt"`
+	Golongan   string `json:"golongan"` // G: Ghani, M: Miskin, F: Fakir
+}
+
+// PendudukInput for creating/updating penduduk
+type PendudukInput struct {
 	NamaKK     string `json:"nama_kk"`
 	JumlahJiwa int    `json:"jumlah_jiwa"`
 	RT         string `json:"rt"`

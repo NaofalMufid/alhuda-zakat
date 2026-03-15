@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"zakat-web-app/internal/handlers"
+	"zakat-web-app/internal/middleware"
 	"zakat-web-app/internal/sheets"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
@@ -49,7 +50,7 @@ func main() {
 	}
 	fmt.Println("✅ Connected to Google Sheets")
 
-	// Ensure transaksi sheet exists
+	// Ensure sheets exist (transaksi and users)
 	fmt.Println("🔄 Checking sheets structure...")
 	if err := client.EnsureSheetsExist(); err != nil {
 		log.Printf("⚠️  Warning: %v", err)
@@ -60,14 +61,15 @@ func main() {
 	masterHandler := handlers.NewMasterHandler(client)
 	transaksiHandler := handlers.NewTransaksiHandler(client)
 	laporanHandler := handlers.NewLaporanHandler(client)
+	authHandler := handlers.NewAuthHandler(client)
 
 	// Setup router
 	r := chi.NewRouter()
 
-	// Middleware
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(30 * time.Second))
+	// Global Middleware
+	r.Use(chiMiddleware.Logger)
+	r.Use(chiMiddleware.Recoverer)
+	r.Use(chiMiddleware.Timeout(30 * time.Second))
 	r.Use(corsMiddleware)
 	r.Use(jsonContentTypeMiddleware)
 
@@ -78,20 +80,38 @@ func main() {
 		http.ServeFile(w, r, "static/"+path)
 	})
 
-	// API routes - Grouped by resource
+	// ============================================
+	// API ROUTES
+	// ============================================
 	r.Route("/api", func(r chi.Router) {
-		// Master data endpoints (cacheable by frontend)
-		r.Mount("/penduduk", pendudukHandler.Routes())
-		r.Mount("/master", masterHandler.Routes())
+		// Auth endpoints (public)
+		r.Mount("/auth", authHandler.Routes())
 
-		// Transaction endpoints (no cache)
-		r.Mount("/transaksi", transaksiHandler.Routes())
-
-		// Report endpoints
+		// Reports - Public access
 		r.Mount("/laporan", laporanHandler.Routes())
+
+		// Transactions - GET only (public)
+		r.Get("/transaksi", transaksiHandler.GetAll)
+
+		// ============================================
+		// PROTECTED ENDPOINTS (Admin only)
+		// ============================================
+		r.Group(func(r chi.Router) {
+			// Require authentication for all routes in this group
+			r.Use(middleware.AuthMiddleware)
+
+			// Master data (admin only)
+			r.Mount("/penduduk", pendudukHandler.Routes())
+			r.Mount("/master", masterHandler.Routes())
+
+			// Transactions - POST/PUT/DELETE (admin only)
+			r.Post("/transaksi", transaksiHandler.Create)
+			r.Put("/transaksi/{rowIndex}", transaksiHandler.Update)
+			r.Delete("/transaksi/{rowIndex}", transaksiHandler.Delete)
+		})
 	})
 
-	// Health check
+	// Health check (public)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		handlers.JSONResponse(w, http.StatusOK, map[string]interface{}{
 			"status":    "ok",
@@ -108,16 +128,26 @@ func main() {
 	// Print routes info
 	fmt.Println("\n📋 Available Endpoints:")
 	fmt.Println("=====================")
-	fmt.Println("GET  /health                 - Health check")
-	fmt.Println("GET  /api/penduduk           - Get all penduduk")
-	fmt.Println("GET  /api/penduduk/search?q= - Search penduduk")
-	fmt.Println("GET  /api/master/opsi-pembayaran - Get payment options")
-	fmt.Println("GET  /api/master/amil        - Get amil list")
-	fmt.Println("GET  /api/transaksi          - Get all transactions")
-	fmt.Println("POST /api/transaksi          - Create new transaction")
-	fmt.Println("GET  /api/laporan/kewajiban  - Laporan kewajiban")
-	fmt.Println("GET  /api/laporan/total      - Laporan total penerimaan")
-	fmt.Println("GET  /api/laporan/gabungan   - Laporan gabungan")
+	fmt.Println("PUBLIC (No Auth Required):")
+	fmt.Println("  GET  /health                 - Health check")
+	fmt.Println("  POST /api/auth/login         - Login")
+	fmt.Println("  GET  /api/laporan/kewajiban  - Laporan kewajiban")
+	fmt.Println("  GET  /api/laporan/total      - Laporan total penerimaan")
+	fmt.Println("  GET  /api/laporan/gabungan   - Laporan gabungan")
+	fmt.Println("  GET  /api/transaksi          - Get all transactions (public)")
+	fmt.Println("")
+	fmt.Println("PROTECTED (Admin Auth Required):")
+	fmt.Println("  GET  /api/auth/me            - Get current user")
+	fmt.Println("  GET  /api/penduduk           - Get all penduduk")
+	fmt.Println("  GET  /api/penduduk/search?q= - Search penduduk")
+	fmt.Println("  POST /api/penduduk           - Create penduduk")
+	fmt.Println("  PUT  /api/penduduk/{id}      - Update penduduk")
+	fmt.Println("  DELETE /api/penduduk/{id}    - Delete penduduk")
+	fmt.Println("  GET  /api/master/opsi-pembayaran - Get payment options")
+	fmt.Println("  GET  /api/master/amil        - Get amil list")
+	fmt.Println("  POST /api/transaksi          - Create new transaction")
+	fmt.Println("  PUT  /api/transaksi/{id}     - Update transaction")
+	fmt.Println("  DELETE /api/transaksi/{id}   - Delete transaction")
 	fmt.Println("=====================")
 
 	fmt.Printf("\n🚀 Server starting on http://localhost:%s\n", port)
@@ -166,22 +196,26 @@ func serveStatic(path string) http.HandlerFunc {
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
         code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; }
         .endpoint { margin: 10px 0; padding: 10px; background: #f9f9f9; border-radius: 5px; }
+        .public { border-left: 4px solid #28a745; }
+        .protected { border-left: 4px solid #dc3545; }
     </style>
 </head>
 <body>
     <h1>🕌 Zakat Web App API</h1>
     <p>Backend is running! Frontend is under development.</p>
-    <h2>Available Endpoints:</h2>
-    <div class="endpoint"><code>GET /health</code> - Health check</div>
-    <div class="endpoint"><code>GET /api/penduduk</code> - Get all penduduk</div>
-    <div class="endpoint"><code>GET /api/penduduk/search?q=keyword</code> - Search penduduk</div>
-    <div class="endpoint"><code>GET /api/master/opsi-pembayaran</code> - Get payment options</div>
-    <div class="endpoint"><code>GET /api/master/amil</code> - Get amil list</div>
-    <div class="endpoint"><code>GET /api/transaksi</code> - Get all transactions</div>
-    <div class="endpoint"><code>POST /api/transaksi</code> - Create transaction</div>
-    <div class="endpoint"><code>GET /api/laporan/kewajiban</code> - Laporan kewajiban</div>
-    <div class="endpoint"><code>GET /api/laporan/total</code> - Laporan total</div>
-    <div class="endpoint"><code>GET /api/laporan/gabungan</code> - Laporan gabungan</div>
+    <h2>Public Endpoints (No Auth):</h2>
+    <div class="endpoint public"><code>GET /health</code> - Health check</div>
+    <div class="endpoint public"><code>POST /api/auth/login</code> - Login</div>
+    <div class="endpoint public"><code>GET /api/laporan/*</code> - All reports</div>
+    <div class="endpoint public"><code>GET /api/transaksi</code> - List transactions</div>
+    
+    <h2>Protected Endpoints (Admin Only):</h2>
+    <div class="endpoint protected"><code>GET /api/auth/me</code> - Current user</div>
+    <div class="endpoint protected"><code>GET /api/penduduk</code> - Get all penduduk</div>
+    <div class="endpoint protected"><code>GET /api/master/*</code> - Master data</div>
+    <div class="endpoint protected"><code>POST /api/transaksi</code> - Create transaction</div>
+    <div class="endpoint protected"><code>PUT /api/transaksi/{id}</code> - Update transaction</div>
+    <div class="endpoint protected"><code>DELETE /api/transaksi/{id}</code> - Delete transaction</div>
 </body>
 </html>`))
 			return

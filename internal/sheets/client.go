@@ -46,13 +46,15 @@ func (c *Client) GetPenduduk() ([]models.Penduduk, error) {
 	}
 
 	var penduduk []models.Penduduk
-	for _, row := range resp.Values {
+	// Row index dimulai dari 2 (baris 1 adalah header)
+	for i, row := range resp.Values {
 		if len(row) < 3 {
 			continue
 		}
 
 		p := models.Penduduk{
-			NamaKK: getString(row, 1),  // Kolom B
+			RowIndex: i + 2, // +2 karena data mulai dari baris 2
+			NamaKK:   getString(row, 1), // Kolom B
 		}
 
 		// Parse jumlah_jiwa (Kolom C)
@@ -97,6 +99,101 @@ func (c *Client) SearchPenduduk(query string) ([]models.Penduduk, error) {
 	}
 
 	return results, nil
+}
+
+// AddPenduduk adds a new penduduk to "data_penduduk" sheet
+func (c *Client) AddPenduduk(input models.PendudukInput) error {
+	rangeName := "data_penduduk!A:E"
+
+	// Generate nomor urut (hitung jumlah baris yang ada + 1)
+	penduduk, err := c.GetPenduduk()
+	if err != nil {
+		return fmt.Errorf("unable to get existing penduduk count: %v", err)
+	}
+	no := len(penduduk) + 1
+
+	row := []interface{}{
+		no,
+		input.NamaKK,
+		input.JumlahJiwa,
+		input.RT,
+		input.Golongan,
+	}
+
+	valueRange := &sheets.ValueRange{
+		Values: [][]interface{}{row},
+	}
+
+	_, err = c.srv.Spreadsheets.Values.Append(
+		c.spreadsheetID,
+		rangeName,
+		valueRange,
+	).ValueInputOption("USER_ENTERED").Do()
+
+	if err != nil {
+		return fmt.Errorf("unable to append penduduk: %v", err)
+	}
+
+	return nil
+}
+
+// UpdatePenduduk updates an existing penduduk in "data_penduduk" sheet
+func (c *Client) UpdatePenduduk(rowIndex int, input models.PendudukInput) error {
+	// Row index sudah dalam format 1-based
+	rangeName := fmt.Sprintf("data_penduduk!A%d:E%d", rowIndex, rowIndex)
+
+	// Get existing nomor urut
+	noRange := fmt.Sprintf("data_penduduk!A%d", rowIndex)
+	resp, err := c.srv.Spreadsheets.Values.Get(c.spreadsheetID, noRange).Do()
+	if err != nil {
+		return fmt.Errorf("unable to get existing nomor: %v", err)
+	}
+
+	no := rowIndex - 1 // Default nomor urut
+	if len(resp.Values) > 0 && len(resp.Values[0]) > 0 {
+		if n, err := strconv.Atoi(getString(resp.Values[0], 0)); err == nil {
+			no = n
+		}
+	}
+
+	row := []interface{}{
+		no,
+		input.NamaKK,
+		input.JumlahJiwa,
+		input.RT,
+		input.Golongan,
+	}
+
+	valueRange := &sheets.ValueRange{
+		Values: [][]interface{}{row},
+	}
+
+	_, err = c.srv.Spreadsheets.Values.Update(
+		c.spreadsheetID,
+		rangeName,
+		valueRange,
+	).ValueInputOption("USER_ENTERED").Do()
+
+	if err != nil {
+		return fmt.Errorf("unable to update penduduk: %v", err)
+	}
+
+	return nil
+}
+
+// DeletePenduduk deletes a penduduk from "data_penduduk" sheet by clearing the row
+func (c *Client) DeletePenduduk(rowIndex int) error {
+	// Row index sudah dalam format 1-based
+	rangeName := fmt.Sprintf("data_penduduk!A%d:E%d", rowIndex, rowIndex)
+
+	// Clear values
+	clearRequest := &sheets.ClearValuesRequest{}
+	_, err := c.srv.Spreadsheets.Values.Clear(c.spreadsheetID, rangeName, clearRequest).Do()
+	if err != nil {
+		return fmt.Errorf("unable to clear penduduk row: %v", err)
+	}
+
+	return nil
 }
 
 // GetOpsiPembayaran retrieves all data from "opsi_pembayaran" sheet
@@ -483,7 +580,80 @@ func (c *Client) EnsureSheetsExist() error {
 		fmt.Println("Created 'transaksi' sheet with headers")
 	}
 
+	// Create "users" sheet if not exists
+	if !sheetNames["users"] {
+		req := &sheets.BatchUpdateSpreadsheetRequest{
+			Requests: []*sheets.Request{
+				{
+					AddSheet: &sheets.AddSheetRequest{
+						Properties: &sheets.SheetProperties{
+							Title: "users",
+						},
+					},
+				},
+			},
+		}
+
+		_, err := c.srv.Spreadsheets.BatchUpdate(c.spreadsheetID, req).Do()
+		if err != nil {
+			return fmt.Errorf("unable to create users sheet: %v", err)
+		}
+
+		// Add headers
+		headers := [][]interface{}{{
+			"username", "password_hash", "nama_lengkap", "aktif",
+		}}
+		valueRange := &sheets.ValueRange{
+			Values: headers,
+		}
+		_, err = c.srv.Spreadsheets.Values.Update(
+			c.spreadsheetID,
+			"users!A1:D1",
+			valueRange,
+		).ValueInputOption("USER_ENTERED").Do()
+		if err != nil {
+			return fmt.Errorf("unable to add users headers: %v", err)
+		}
+
+		fmt.Println("Created 'users' sheet with headers")
+		fmt.Println("⚠️  IMPORTANT: Please add admin user to 'users' sheet with bcrypt hashed password")
+		fmt.Println("   Use: https://bcrypt-generator.com/ or run: go run tools/hash_password.go")
+	}
+
 	return nil
+}
+
+// GetUserByUsername retrieves a user by username from "users" sheet
+// Structure: username | password_hash | nama_lengkap | aktif
+func (c *Client) GetUserByUsername(username string) (*models.User, error) {
+	rangeName := "users!A2:D"
+	resp, err := c.srv.Spreadsheets.Values.Get(c.spreadsheetID, rangeName).Do()
+	if err != nil {
+		return nil, fmt.Errorf("unable to retrieve users data: %v", err)
+	}
+
+	for _, row := range resp.Values {
+		if len(row) < 2 {
+			continue
+		}
+
+		rowUsername := getString(row, 0)
+		if strings.EqualFold(rowUsername, username) {
+			user := &models.User{
+				Username:     rowUsername,
+				PasswordHash: getString(row, 1),
+				NamaLengkap:  getString(row, 2),
+			}
+			// Parse aktif (Kolom D)
+			if len(row) >= 4 {
+				aktifStr := strings.ToLower(getString(row, 3))
+				user.Aktif = aktifStr == "true" || aktifStr == "yes" || aktifStr == "1" || aktifStr == "aktif"
+			}
+			return user, nil
+		}
+	}
+
+	return nil, fmt.Errorf("user not found")
 }
 
 // LoadEnv loads environment variables from .env file

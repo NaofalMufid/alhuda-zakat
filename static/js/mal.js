@@ -2,30 +2,15 @@
  * Zakat Mal page logic
  */
 
-function showMalTab(tabName, clickedElement) {
-    if (typeof event !== 'undefined') event.preventDefault();
-    
-    document.querySelectorAll('.mal-tab-content').forEach(el => {
-        el.classList.add('d-none');
-    });
-    
-    document.getElementById(`mal-tab-${tabName}`).classList.remove('d-none');
-    
-    document.querySelectorAll('#malSubNav .nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    if (clickedElement) {
-        clickedElement.classList.add('active');
-    }
-    
-    if (tabName === 'list') {
-        loadTransaksiList();
-    }
-}
-
 async function submitMal(event) {
     event.preventDefault();
+    
+    // Cek autentikasi
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+        showToast('Silakan login terlebih dahulu', 'warning');
+        showLoginModal();
+        return;
+    }
     
     const jumlahUang = parseFloat(document.getElementById('jumlahZakatMal').value) || 0;
     if (!jumlahUang || jumlahUang <= 0) {

@@ -2,28 +2,6 @@
  * Zakat Fitrah page logic
  */
 
-function showFitrahTab(tabName, clickedElement) {
-    if (typeof event !== 'undefined') event.preventDefault();
-    
-    document.querySelectorAll('.fitrah-tab-content').forEach(el => {
-        el.classList.add('d-none');
-    });
-    
-    document.getElementById(`fitrah-tab-${tabName}`).classList.remove('d-none');
-    
-    document.querySelectorAll('#fitrahSubNav .nav-link').forEach(link => {
-        link.classList.remove('active');
-    });
-    
-    if (clickedElement) {
-        clickedElement.classList.add('active');
-    }
-    
-    if (tabName === 'list') {
-        loadTransaksiList();
-    }
-}
-
 function onJenisChange() {
     calculateTotal();
 }
@@ -132,6 +110,13 @@ function calculateKelebihan() {
 
 async function submitFitrah(event) {
     event.preventDefault();
+    
+    // Cek autentikasi
+    if (typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
+        showToast('Silakan login terlebih dahulu', 'warning');
+        showLoginModal();
+        return;
+    }
     
     if (!state.selectedPenduduk && !state.editingTransaksi) {
         showToast('Silakan pilih nama kepala keluarga', 'warning');

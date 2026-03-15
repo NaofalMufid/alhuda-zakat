@@ -51,6 +51,9 @@ function renderTransaksiTable(jenis) {
     const tbody = document.getElementById(`tableTransaksi${jenis.charAt(0).toUpperCase() + jenis.slice(1)}`);
     if (!tbody) return;
     
+    // Cek apakah user sudah login untuk menampilkan tombol edit/delete
+    const isLoggedIn = typeof Auth !== 'undefined' && Auth.isLoggedIn();
+    
     const filtered = state.transaksi.filter(t => t.jenis_zakat === jenis);
     
     const searchInput = document.getElementById(`searchTransaksi${jenis.charAt(0).toUpperCase() + jenis.slice(1)}`);
@@ -105,12 +108,14 @@ function renderTransaksiTable(jenis) {
                     <td><small class="text-muted">${kelebihan}</small></td>
                     <td><small>${escapeHtml(t.amil_penerima) || '-'}</small></td>
                     <td>
+                        ${isLoggedIn ? `
                         <button class="btn btn-sm btn-outline-primary btn-action me-1" onclick='editTransaksi(${t.row_index}, "fitrah")'>
                             <i class="bi bi-pencil"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger btn-action" onclick='hapusTransaksi(${t.row_index}, "${escapeHtml(t.nama_kk)}")'>
                             <i class="bi bi-trash"></i>
                         </button>
+                        ` : '<small class="text-muted">-</small>'}
                     </td>
                 </tr>
             `;
@@ -127,12 +132,14 @@ function renderTransaksiTable(jenis) {
                     <td><small class="text-muted">${escapeHtml(t.kategori) || '-'}</small></td>
                     <td><small>${escapeHtml(t.amil_penerima) || '-'}</small></td>
                     <td>
+                        ${isLoggedIn ? `
                         <button class="btn btn-sm btn-outline-primary btn-action me-1" onclick='editTransaksi(${t.row_index}, "mal")'>
                             <i class="bi bi-pencil"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-danger btn-action" onclick='hapusTransaksi(${t.row_index}, "${escapeHtml(t.nama_kk)}")'>
                             <i class="bi bi-trash"></i>
                         </button>
+                        ` : '<small class="text-muted">-</small>'}
                     </td>
                 </tr>
             `;

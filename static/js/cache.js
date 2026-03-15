@@ -14,7 +14,7 @@ const CACHE_KEYS = {
 
 const Cache = {
     // ========== MASTER DATA CACHE (dengan TTL) ==========
-    getMaster() {
+    getMaster: function() {
         try {
             const data = localStorage.getItem(CACHE_KEYS.MASTER);
             if (!data) return null;
@@ -36,7 +36,7 @@ const Cache = {
         }
     },
     
-    setMaster(penduduk, opsiPembayaran, amil) {
+    setMaster: function(penduduk, opsiPembayaran, amil) {
         const cache = {
             penduduk,
             opsi_pembayaran: opsiPembayaran,
@@ -47,7 +47,7 @@ const Cache = {
     },
     
     // ========== TRANSAKSI CACHE (invalidate saat ada perubahan) ==========
-    getTransaksi() {
+    getTransaksi: function() {
         try {
             const data = localStorage.getItem(CACHE_KEYS.TRANSAKSI);
             if (!data) return null;
@@ -58,7 +58,7 @@ const Cache = {
         }
     },
     
-    setTransaksi(transaksi) {
+    setTransaksi: function(transaksi) {
         const cache = {
             data: transaksi,
             cached_at: new Date().toISOString(),
@@ -69,7 +69,7 @@ const Cache = {
     },
     
     // ========== LAPORAN CACHE (invalidate saat ada perubahan) ==========
-    getLaporan() {
+    getLaporan: function() {
         try {
             const data = localStorage.getItem(CACHE_KEYS.LAPORAN);
             if (!data) return null;
@@ -80,7 +80,7 @@ const Cache = {
         }
     },
     
-    setLaporan(kewajiban, total, gabungan) {
+    setLaporan: function(kewajiban, total, gabungan) {
         const cache = {
             kewajiban,
             total,
@@ -92,44 +92,72 @@ const Cache = {
     },
     
     // ========== LAST UPDATE TRACKING ==========
-    setLastUpdate() {
+    setLastUpdate: function() {
         localStorage.setItem(CACHE_KEYS.LAST_UPDATE, new Date().toISOString());
     },
     
-    getLastUpdate() {
+    getLastUpdate: function() {
         return localStorage.getItem(CACHE_KEYS.LAST_UPDATE);
     },
     
     // ========== INVALIDATION ==========
-    clearMaster() {
+    clearMaster: function() {
         localStorage.removeItem(CACHE_KEYS.MASTER);
     },
     
-    clearTransaksi() {
+    clearTransaksi: function() {
         localStorage.removeItem(CACHE_KEYS.TRANSAKSI);
     },
     
-    clearLaporan() {
+    clearLaporan: function() {
         localStorage.removeItem(CACHE_KEYS.LAPORAN);
     },
     
     // Invalidate semua cache terkait transaksi (dipanggil saat create/update/delete)
-    invalidateTransaksi() {
+    invalidateTransaksi: function() {
         this.clearTransaksi();
         this.clearLaporan();
         this.setLastUpdate();
         console.log('Cache transaksi dan laporan diinvalidate');
     },
     
-    clearAll() {
+    clearAll: function() {
         localStorage.removeItem(CACHE_KEYS.MASTER);
         localStorage.removeItem(CACHE_KEYS.TRANSAKSI);
         localStorage.removeItem(CACHE_KEYS.LAPORAN);
         localStorage.removeItem(CACHE_KEYS.LAST_UPDATE);
     },
     
+    // ========== GENERIC CACHE (untuk data lain seperti penduduk_list) ==========
+    get: function(key) {
+        try {
+            const data = localStorage.getItem(`zakat_cache_${key}`);
+            if (!data) return null;
+            return JSON.parse(data);
+        } catch (e) {
+            console.error(`Cache get(${key}) error:`, e);
+            return null;
+        }
+    },
+    
+    set: function(key, data) {
+        try {
+            const cache = {
+                data: data,
+                cached_at: new Date().toISOString()
+            };
+            localStorage.setItem(`zakat_cache_${key}`, JSON.stringify(cache));
+        } catch (e) {
+            console.error(`Cache set(${key}) error:`, e);
+        }
+    },
+    
+    invalidate: function(key) {
+        localStorage.removeItem(`zakat_cache_${key}`);
+    },
+    
     // ========== UTILITY ==========
-    getCacheInfo() {
+    getCacheInfo: function() {
         const master = this.getMaster();
         const transaksi = this.getTransaksi();
         const laporan = this.getLaporan();
@@ -151,3 +179,6 @@ const Cache = {
         };
     }
 };
+
+// Debug: Verifikasi Cache object tersedia
+console.log('Cache module loaded, methods:', Object.keys(Cache));

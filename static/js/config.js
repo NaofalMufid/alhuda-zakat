@@ -16,5 +16,7 @@ const state = {
     selectedPenduduk: null,
     cacheLoaded: false,
     transaksi: [],
-    editingTransaksi: null
+    editingTransaksi: null,
+    currentUser: null,
+    isLoggedIn: false
 };
