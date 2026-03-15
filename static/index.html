@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zakat Fitrah & Mal - Pencatatan Digital</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --info-color: #0dcaf0;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+        
+        .nav-pills .nav-link {
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-weight: 500;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+        
+        .nav-pills .nav-link:hover {
+            background-color: #e9ecef;
+        }
+        
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+        }
+        
+        .nav-pills .nav-link i {
+            font-size: 1.2rem;
+            margin-right: 8px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 6px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1.5px solid #dee2e6;
+            padding: 10px 14px;
+            font-size: 1rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+        }
+        
+        .btn {
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .search-results.show {
+            display: block;
+        }
+        
+        .search-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .search-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .search-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-item .name {
+            font-weight: 500;
+            color: #212529;
+        }
+        
+        .search-item .info {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+        }
+        
+        .stat-card.success {
+            background: linear-gradient(135deg, var(--success-color), #146c43);
+        }
+        
+        .stat-card.warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        .stat-card.info {
+            background: linear-gradient(135deg, var(--info-color), #0aa2c0);
+        }
+        
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-card .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            z-index: 1050;
+        }
+        
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .badge-golongan {
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .badge-golongan.G { background: #e3f2fd; color: #1565c0; }
+        .badge-golongan.M { background: #fff3e0; color: #e65100; }
+        .badge-golongan.F { background: #fce4ec; color: #c2185b; }
+        
+        /* Sub-tab styling */
+        .sub-nav {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        
+        .sub-nav .nav-link {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #6c757d;
+        }
+        
+        .sub-nav .nav-link:hover {
+            background-color: #e9ecef;
+        }
+        
+        .sub-nav .nav-link.active {
+            background-color: white;
+            color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Table styling */
+        .table-transaksi {
+            font-size: 0.9rem;
+        }
+        
+        .table-transaksi th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .table-transaksi td {
+            vertical-align: middle;
+        }
+        
+        .badge-jenis {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .badge-jenis.fitrah {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .badge-jenis.mal {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .btn-action {
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-pills .nav-link {
+                padding: 10px 14px;
+                font-size: 0.9rem;
+            }
+            
+            .nav-pills .nav-link i {
+                display: block;
+                margin: 0 0 4px 0;
+                text-align: center;
+            }
+            
+            .stat-card .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+        
+        .htmx-indicator {
+            display: none;
+        }
+        
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Auth Overlay Styles */
+        .auth-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            border-radius: 12px;
+        }
+
+        .auth-overlay-content {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .auth-overlay-content i {
+            font-size: 3rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+
+        .auth-overlay-content p {
+            color: #6c757d;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        /* Navbar auth buttons */
+        .navbar-auth {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .navbar-auth .btn {
+            padding: 0.375rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .user-dropdown .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .user-dropdown .dropdown-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .user-dropdown .dropdown-menu {
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: none;
+            min-width: 180px;
+        }
+
+        .user-dropdown .dropdown-item {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin: 0.125rem 0.5rem;
+        }
+
+        .user-dropdown .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .user-dropdown .dropdown-item.text-danger:hover {
+            background-color: #fee;
+        }
+
+        /* Login Modal */
+        .login-modal .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .login-modal .modal-header {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .login-modal .modal-body {
+            padding: 2rem;
+        }
+
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #0d6efd, #0056b3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+        }
+
+        /* Disabled form state */
+        .form-protected input:disabled,
+        .form-protected select:disabled,
+        .form-protected button:disabled,
+        .form-protected textarea:disabled {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        /* Protected badge */
+        .protected-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: #dc3545;
+            color: white;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-moon-stars-fill me-2"></i>
+                Zakat Web App
+            </a>
+            <span class="navbar-text text-white-50 d-none d-sm-block flex-grow-1 ms-3">
+                Sistem Pencatatan Zakat Fitrah & Mal
+            </span>
+            
+            <!-- Auth Buttons -->
+            <div class="navbar-auth ms-auto">
+                <!-- Login Button (shown when not logged in) -->
+                <button id="loginBtn" class="btn btn-light btn-sm d-none" onclick="showLoginModal()">
+                    <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                </button>
+                
+                <!-- User Dropdown (shown when logged in) -->
+                <div id="userDropdown" class="dropdown user-dropdown d-none">
+                    <a href="#" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i>
+                        <span id="userName">Admin</span>
+                        <i class="bi bi-chevron-down small"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text text-muted small">Logged in as <strong id="userNameDropdown">Admin</strong></span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="handleLogout()">
+                            <i class="bi bi-box-arrow-right me-2"></i>Logout
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Navigation Pills -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <ul class="nav nav-pills nav-fill" id="mainNav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="laporan" onclick="showPage('laporan')">
+                            <i class="bi bi-graph-up"></i>
+                            <span>Laporan</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="fitrah" onclick="showPage('fitrah')">
+                            <i class="bi bi-people-fill"></i>
+                            <span>Zakat Fitrah</span>
+                            <span class="protected-badge" title="Login diperlukan"><i class="bi bi-lock-fill"></i></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="mal" onclick="showPage('mal')">
+                            <i class="bi bi-coin"></i>
+                            <span>Zakat Mal</span>
+                            <span class="protected-badge" title="Login diperlukan"><i class="bi bi-lock-fill"></i></span>
+                        </a>
+                    </li>
+                    <li class="nav-item auth-required d-none">
+                        <a class="nav-link" href="#" data-page="penduduk" onclick="showPage('penduduk')">
+                            <i class="bi bi-person-lines-fill"></i>
+                            <span>Data Penduduk</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Zakat Fitrah Page -->
+        <div id="page-fitrah" class="page-content d-none">
+            <!-- Sub Navigation -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <ul class="nav nav-pills sub-nav justify-content-center" id="fitrahSubNav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showFitrahTab('form', this)">
+                                <i class="bi bi-plus-circle me-1"></i>Input Transaksi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showFitrahTab('list', this)">
+                                <i class="bi bi-list-ul me-1"></i>Daftar Transaksi
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Form Tab -->
+            <div id="fitrah-tab-form" class="fitrah-tab-content">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-people-fill text-primary me-2"></i>
+                                    Pencatatan Zakat Fitrah
+                                </h5>
+                            </div>
+                            <div class="card-body p-4 form-protected">
+                                <form id="formFitrah" onsubmit="submitFitrah(event)">
+                                    <input type="hidden" id="editRowIndex" value="">
+                                    
+                                    <!-- Pencarian Nama KK -->
+                                    <div class="mb-4">
+                                        <label class="form-label">Nama Kepala Keluarga</label>
+                                        <div class="search-container">
+                                            <div class="input-group">
+                                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                                <input type="text" 
+                                                       class="form-control" 
+                                                       id="searchKK" 
+                                                       placeholder="Ketik nama untuk mencari..."
+                                                       autocomplete="off">
+                                            </div>
+                                            <div class="search-results" id="searchResults"></div>
+                                        </div>
+                                        <input type="hidden" id="selectedKK" required>
+                                    </div>
+
+                                    <!-- Info KK (muncul setelah dipilih) -->
+                                    <div id="infoKK" class="alert alert-info d-none">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong id="infoNamaKK">-</strong>
+                                                <div class="mt-1">
+                                                    <span class="badge-golongan" id="infoGolongan">-</span>
+                                                    <span class="text-muted ms-2" id="infoAlamat">-</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="text-muted small">Jumlah Jiwa</div>
+                                                <div class="h4 mb-0" id="infoJumlahJiwa">-</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Edit Jumlah Jiwa -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah Jiwa</label>
+                                        <input type="number" 
+                                               class="form-control" 
+                                               id="jumlahJiwa" 
+                                               min="1" 
+                                               value="1"
+                                               onchange="calculateTotal()">
+                                    </div>
+
+                                    <!-- Jenis Pembayaran -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Jenis Pembayaran</label>
+                                        <select class="form-select" id="jenisBayar" onchange="onJenisChange()" required>
+                                            <option value="">Pilih jenis pembayaran...</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Kalkulasi -->
+                                    <div class="alert alert-light border mb-3">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>Total Kewajiban:</span>
+                                            <span class="h4 mb-0 text-primary" id="totalKewajiban">Rp 0</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Jumlah Beras Aktual (hanya muncul untuk pembayaran beras) -->
+                                    <div id="berasAktualSection" class="mb-3 d-none">
+                                        <label class="form-label">
+                                            <i class="bi bi-basket-fill text-warning me-1"></i>
+                                            Jumlah Beras Aktual Diberikan
+                                            <small class="text-muted d-block">Isi jika berbeda dari perhitungan (misal: lebih/lebih sedikit)</small>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="jumlahBerasAktual" 
+                                                   placeholder="0"
+                                                   step="0.1"
+                                                   min="0">
+                                            <span class="input-group-text">kg</span>
+                                        </div>
+                                        <div class="form-text text-muted">
+                                            Kewajiban: <span id="kewajibanBerasDisplay">0</span> kg
+                                            <span id="selisihBerasDisplay" class="ms-2"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Jumlah Dibayar -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah Dibayarkan</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="jumlahBayar" 
+                                                   placeholder="0"
+                                                   oninput="calculateKelebihan()">
+                                        </div>
+                                    </div>
+
+                                    <!-- Kelebihan -->
+                                    <div id="kelebihanSection" class="d-none">
+                                        <div class="alert alert-warning">
+                                            <div class="d-flex justify-content-between">
+                                                <span>Kelebihan:</span>
+                                                <strong id="jumlahKelebihan">Rp 0</strong>
+                                            </div>
+                                            <div class="mt-2">
+                                                <label class="form-label small">Pengalihan kelebihan:</label>
+                                                <select class="form-select form-select-sm" id="pengalihanKelebihan">
+                                                    <option value="dikembalikan">Dikembalikan</option>
+                                                    <option value="amal">Amal</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Amil Penerima -->
+                                    <div class="mb-4">
+                                        <label class="form-label">Amil Penerima</label>
+                                        <select class="form-select" id="amilPenerima">
+                                            <option value="">Pilih amil...</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Submit -->
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-lg" id="btnSubmitFitrah">
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            Simpan Transaksi
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary d-none" id="btnCancelEdit" onclick="cancelEdit()">
+                                            <i class="bi bi-x-circle me-2"></i>
+                                            Batal Edit
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Tab -->
+            <div id="fitrah-tab-list" class="fitrah-tab-content d-none">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-white py-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-list-ul text-primary me-2"></i>
+                                        Daftar Transaksi Zakat Fitrah
+                                    </h5>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <div id="cacheInfoTransaksiFitrah"></div>
+                                        <input type="text" class="form-control form-control-sm" id="searchTransaksiFitrah" 
+                                               placeholder="Cari nama..." style="width: 200px;" onkeyup="filterTransaksi('fitrah')">
+                                        <button class="btn btn-outline-primary btn-sm" onclick="refreshTransaksiList()" title="Refresh data">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Data di-cache. Klik refresh untuk mengambil data terbaru.</small>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-transaksi table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Tanggal</th>
+                                                <th>Nama KK</th>
+                                                <th>Jiwa</th>
+                                                <th>Kategori</th>
+                                                <th>Beras</th>
+                                                <th>Uang</th>
+                                                <th>Kelebihan</th>
+                                                <th>Amil</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableTransaksiFitrah">
+                                            <tr>
+                                                <td colspan="9" class="text-center text-muted py-4">Memuat data...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zakat Mal Page -->
+        <div id="page-mal" class="page-content d-none">
+            <!-- Sub Navigation -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <ul class="nav nav-pills sub-nav justify-content-center" id="malSubNav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" onclick="showMalTab('form', this)">
+                                <i class="bi bi-plus-circle me-1"></i>Input Transaksi
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" onclick="showMalTab('list', this)">
+                                <i class="bi bi-list-ul me-1"></i>Daftar Transaksi
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Form Tab -->
+            <div id="mal-tab-form" class="mal-tab-content">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <div class="card">
+                            <div class="card-header bg-white py-3">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-coin text-success me-2"></i>
+                                    Pencatatan Zakat Mal
+                                </h5>
+                            </div>
+                            <div class="card-body p-4 form-protected">
+                                <form id="formMal" onsubmit="submitMal(event)">
+                                    <input type="hidden" id="editRowIndexMal" value="">
+                                    
+                                    <!-- Nama Muzaki -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Nama Muzaki</label>
+                                        <input type="text" 
+                                               class="form-control" 
+                                               id="namaMuzaki" 
+                                               placeholder="Masukkan nama muzaki"
+                                               required>
+                                    </div>
+
+                                    <!-- Jumlah Zakat -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Jumlah Zakat Mal</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">Rp</span>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="jumlahZakatMal" 
+                                                   placeholder="0"
+                                                   required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Keterangan -->
+                                    <div class="mb-4">
+                                        <label class="form-label">Keterangan (Opsional)</label>
+                                        <textarea class="form-control" 
+                                                  id="keteranganMal" 
+                                                  rows="2"
+                                                  placeholder="Jenis harta, periode, dll"></textarea>
+                                    </div>
+
+                                    <!-- Amil Penerima -->
+                                    <div class="mb-4">
+                                        <label class="form-label">Amil Penerima</label>
+                                        <select class="form-select" id="amilPenerimaMal">
+                                            <option value="">Pilih amil...</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Submit -->
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-success btn-lg" id="btnSubmitMal">
+                                            <i class="bi bi-check-circle me-2"></i>
+                                            Simpan Zakat Mal
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary d-none" id="btnCancelEditMal" onclick="cancelEditMal()">
+                                            <i class="bi bi-x-circle me-2"></i>
+                                            Batal Edit
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Tab -->
+            <div id="mal-tab-list" class="mal-tab-content d-none">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-white py-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-list-ul text-success me-2"></i>
+                                        Daftar Transaksi Zakat Mal
+                                    </h5>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <div id="cacheInfoTransaksiMal"></div>
+                                        <input type="text" class="form-control form-control-sm" id="searchTransaksiMal" 
+                                               placeholder="Cari nama..." style="width: 200px;" onkeyup="filterTransaksi('mal')">
+                                        <button class="btn btn-outline-success btn-sm" onclick="refreshTransaksiList()" title="Refresh data">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Data di-cache. Klik refresh untuk mengambil data terbaru.</small>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-transaksi table-hover mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Tanggal</th>
+                                                <th>Nama Muzaki</th>
+                                                <th>Jumlah</th>
+                                                <th>Keterangan</th>
+                                                <th>Amil</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tableTransaksiMal">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">Memuat data...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Penduduk Page (Admin Only) -->
+        <div id="page-penduduk" class="page-content d-none">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-person-lines-fill text-primary me-2"></i>
+                            Data Penduduk
+                        </h5>
+                        <button class="btn btn-primary btn-sm" onclick="showPendudukModal()">
+                            <i class="bi bi-plus-lg me-1"></i>Tambah Penduduk
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub Navigation Tabs -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <ul class="nav nav-pills sub-nav" id="pendudukSubNav">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="#" data-tab="list" onclick="showPendudukTab('list', this)">
+                                <i class="bi bi-list-ul me-1"></i>Daftar Penduduk
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-tab="rangkuman" onclick="showPendudukTab('rangkuman', this)">
+                                <i class="bi bi-bar-chart-fill me-1"></i>Rangkuman
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tab: List -->
+            <div id="penduduk-tab-list" class="penduduk-tab-content">
+                <!-- Search & Filter -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="searchPenduduk" 
+                                   placeholder="Cari nama penduduk..." onkeyup="filterPenduduk()">
+                        </div>
+                    </div>
+                    <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                        <button class="btn btn-outline-primary btn-sm" onclick="loadPendudukList(true)">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Penduduk Table -->
+                <div class="card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-transaksi mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama KK</th>
+                                        <th>Jumlah Jiwa</th>
+                                        <th>Alamat/RT</th>
+                                        <th>Gol</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablePenduduk">
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">Memuat data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Rangkuman -->
+            <div id="penduduk-tab-rangkuman" class="penduduk-tab-content d-none">
+                <!-- Total Keseluruhan Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="card stat-card">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="totalKKSeluruh">0</div>
+                                <div class="stat-label">Total KK</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card stat-card success">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="totalJiwaSeluruh">0</div>
+                                <div class="stat-label">Total Jiwa</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card stat-card info">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="totalRT">0</div>
+                                <div class="stat-label">Jumlah RT</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="card stat-card warning">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="rataJiwa">0</div>
+                                <div class="stat-label">Rata-rata Jiwa/KK</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Golongan Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="text-primary mb-2">G (Ghani)</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalKKG">0</div>
+                                        <small class="text-muted">KK</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalJiwaG">0</div>
+                                        <small class="text-muted">Jiwa</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h6 class="text-warning mb-2">M (Miskin)</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalKKM">0</div>
+                                        <small class="text-muted">KK</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalJiwaM">0</div>
+                                        <small class="text-muted">Jiwa</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-danger">
+                            <div class="card-body text-center">
+                                <h6 class="text-danger mb-2">F (Fakir)</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalKKF">0</div>
+                                        <small class="text-muted">KK</small>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="h4 mb-0" id="totalJiwaF">0</div>
+                                        <small class="text-muted">Jiwa</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detail per RT Table -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0">
+                            <i class="bi bi-table me-2"></i>
+                            Detail per RT/Alamat
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered mb-0 text-center">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th rowspan="2" class="align-middle">RT/Alamat</th>
+                                        <th colspan="2">Total</th>
+                                        <th colspan="2">G (Ghani)</th>
+                                        <th colspan="2">M (Miskin)</th>
+                                        <th colspan="2">F (Fakir)</th>
+                                    </tr>
+                                    <tr class="small">
+                                        <th>KK</th>
+                                        <th>Jiwa</th>
+                                        <th>KK</th>
+                                        <th>Jiwa</th>
+                                        <th>KK</th>
+                                        <th>Jiwa</th>
+                                        <th>KK</th>
+                                        <th>Jiwa</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableRangkumanRT">
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted py-4">Memuat data...</td>
+                                    </tr>
+                                </tbody>
+                                <tfoot class="table-primary fw-bold" id="footRangkumanRT">
+                                    <tr>
+                                        <td>TOTAL</td>
+                                        <td id="footTotalKK">0</td>
+                                        <td id="footTotalJiwa">0</td>
+                                        <td id="footTotalKKG">0</td>
+                                        <td id="footTotalJiwaG">0</td>
+                                        <td id="footTotalKKM">0</td>
+                                        <td id="footTotalJiwaM">0</td>
+                                        <td id="footTotalKKF">0</td>
+                                        <td id="footTotalJiwaF">0</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Laporan Page -->
+        <div id="page-laporan" class="page-content d-none">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h5 class="mb-0">Dashboard Laporan</h5>
+                            <div id="cacheInfoLaporan" class="mt-1"></div>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm" onclick="refreshLaporan()">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                        </button>
+                    </div>
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Data laporan di-cache. Klik refresh untuk mengambil data terbaru setelah ada transaksi baru.</small>
+                </div>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card">
+                        <div class="card-body">
+                            <div class="stat-value" id="statTotalKK">0</div>
+                            <div class="stat-label">KK Muzaki</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card success">
+                        <div class="card-body">
+                            <div class="stat-value" id="statTotalJiwa">0</div>
+                            <div class="stat-label">Total Jiwa</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card warning">
+                        <div class="card-body">
+                            <div class="stat-value" id="statTotalUang">0</div>
+                            <div class="stat-label">Total Uang</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="card stat-card info">
+                        <div class="card-body">
+                            <div class="stat-value" id="statTotalAmal">0</div>
+                            <div class="stat-label">Total Amal</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laporan Detail -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0">Laporan Kewajiban (Tanpa Kelebihan)</h6>
+                        </div>
+                        <div class="card-body" id="laporanKewajiban">
+                            <div class="text-center text-muted py-4">Memuat data...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0">Laporan Total Penerimaan</h6>
+                        </div>
+                        <div class="card-body" id="laporanTotal">
+                            <div class="text-center text-muted py-4">Memuat data...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Beras & Uang -->
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Detail per Kategori</h6>
+                </div>
+                <div class="card-body" id="detailKategori">
+                    <div class="text-center text-muted py-4">Memuat data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay d-none" id="loadingOverlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <div class="text-muted">Memuat data...</div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal fade login-modal" id="loginModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <div class="text-end">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    
+                    <div class="login-icon">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    
+                    <h4 class="text-center mb-1">Login Admin</h4>
+                    <p class="text-muted text-center mb-4 small">Masukkan kredensial untuk mengakses fitur input data</p>
+                    
+                    <form id="loginForm" onsubmit="handleLogin(event)">
+                        <div id="loginError" class="alert alert-danger d-none py-2"></div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Username</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                <input type="text" class="form-control" id="loginUsername" placeholder="Masukkan username" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                <input type="password" class="form-control" id="loginPassword" placeholder="Masukkan password" required>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 btn-lg" id="btnLogin">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Laporan dapat diakses tanpa login
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Penduduk Modal (Add/Edit) -->
+    <div class="modal fade" id="pendudukModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pendudukModalTitle">
+                        <i class="bi bi-person-plus-fill text-primary me-2"></i>Tambah Penduduk
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="pendudukForm" onsubmit="handlePendudukSubmit(event)">
+                        <input type="hidden" id="pendudukRowIndex" value="">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nama Kepala Keluarga <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="pendudukNamaKK" 
+                                   placeholder="Masukkan nama lengkap" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Jumlah Jiwa <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="pendudukJumlahJiwa" 
+                                   placeholder="Jumlah anggota keluarga" min="1" value="1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Alamat / RT</label>
+                            <input type="text" class="form-control" id="pendudukRT" 
+                                   placeholder="Contoh: RT 001 / Jl. Mawar No. 1">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Golongan</label>
+                            <select class="form-select" id="pendudukGolongan">
+                                <option value="">Pilih golongan...</option>
+                                <option value="G">G (Ghani - Mampu)</option>
+                                <option value="M">M (Miskin)</option>
+                                <option value="F">F (Fakir)</option>
+                            </select>
+                            <div class="form-text text-muted">
+                                <small>G: Mampu, M: Miskin, F: Fakir</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="btnSubmitPenduduk">
+                                <i class="bi bi-check-circle me-1"></i>Simpan
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                                Batal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- App Modules (v=3) -->
+    <script src="/static/js/config.js?v=3"></script>
+    <script src="/static/js/utils.js?v=3"></script>
+    <script src="/static/js/cache.js?v=3"></script>
+    <script src="/static/js/api.js?v=3"></script>
+    <script src="/static/js/auth.js?v=3"></script>
+    <script src="/static/js/data.js?v=3"></script>
+    <script src="/static/js/search.js?v=3"></script>
+    <script src="/static/js/navigation.js?v=3"></script>
+    <script src="/static/js/fitrah.js?v=3"></script>
+    <script src="/static/js/mal.js?v=3"></script>
+    <script src="/static/js/transaksi.js?v=3"></script>
+    <script src="/static/js/penduduk.js?v=3"></script>
+    <script src="/static/js/laporan.js?v=3"></script>
+    <script src="/static/js/main.js?v=3"></script>
+</body>
+</html>
