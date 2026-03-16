@@ -913,6 +913,11 @@
                                 <i class="bi bi-bar-chart-fill me-1"></i>Rangkuman
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#" data-tab="komparasi" onclick="showPendudukTab('komparasi', this)">
+                                <i class="bi bi-shield-exclamation me-1"></i>Belum Bayar Zakat
+                            </a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -920,17 +925,38 @@
             <!-- Tab: List -->
             <div id="penduduk-tab-list" class="penduduk-tab-content">
                 <!-- Search & Filter -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
+                <div class="row mb-3 g-2">
+                    <div class="col-md-3">
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
                             <input type="text" class="form-control" id="searchPenduduk" 
-                                   placeholder="Cari nama penduduk..." onkeyup="filterPenduduk()">
+                                   placeholder="Cari nama..." onkeyup="filterPenduduk()">
                         </div>
                     </div>
-                    <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                        <button class="btn btn-outline-primary btn-sm" onclick="loadPendudukList(true)">
-                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterAlamatPenduduk" onchange="filterPenduduk()">
+                            <option value="">Semua Alamat/RT</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="filterGolonganPenduduk" onchange="filterPenduduk()">
+                            <option value="">Semua Gol</option>
+                            <option value="G">G (Ghani)</option>
+                            <option value="M">M (Miskin)</option>
+                            <option value="F">F (Fakir)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="sortPenduduk" onchange="filterPenduduk()">
+                            <option value="nama">Sort: Nama</option>
+                            <option value="alamat">Sort: Alamat</option>
+                            <option value="golongan">Sort: Golongan</option>
+                            <option value="jiwa">Sort: Jiwa</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 text-md-end">
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="loadPendudukList(true)">
+                            <i class="bi bi-arrow-clockwise"></i>
                         </button>
                     </div>
                 </div>
@@ -945,14 +971,118 @@
                                         <th>No</th>
                                         <th>Nama KK</th>
                                         <th>Jumlah Jiwa</th>
-                                        <th>Alamat/RT</th>
-                                        <th>Gol</th>
+                                        <th style="cursor:pointer" onclick="sortPendudukBy('alamat')">Alamat/RT <i class="bi bi-arrow-down-up small"></i></th>
+                                        <th style="cursor:pointer" onclick="sortPendudukBy('golongan')">Gol <i class="bi bi-arrow-down-up small"></i></th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tablePenduduk">
                                     <tr>
                                         <td colspan="6" class="text-center text-muted py-4">Memuat data...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Komparasi Belum Bayar -->
+            <div id="penduduk-tab-komparasi" class="penduduk-tab-content d-none">
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            Fitur ini membandingkan data penduduk dengan transaksi zakat fitrah untuk menemukan KK yang belum membayar zakat.
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <button class="btn btn-primary btn-sm" onclick="loadKomparasiData()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card stat-card">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="komparasiTotalPenduduk">0</div>
+                                <div class="stat-label">Total KK Penduduk</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card stat-card success">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="komparasiSudahBayar">0</div>
+                                <div class="stat-label">Sudah Bayar Zakat</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card stat-card warning">
+                            <div class="card-body text-center">
+                                <div class="stat-value" id="komparasiBelumBayar">0</div>
+                                <div class="stat-label">Belum Bayar Zakat</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Komparasi -->
+                <div class="row mb-3 g-2">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="searchKomparasi" 
+                                   placeholder="Cari nama..." onkeyup="filterKomparasi()">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterAlamatKomparasi" onchange="filterKomparasi()">
+                            <option value="">Semua Alamat/RT</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="filterStatusKomparasi" onchange="filterKomparasi()">
+                            <option value="">Semua Status</option>
+                            <option value="belum">Belum Bayar</option>
+                            <option value="kurang">Bayar Kurang (Selisih Jiwa)</option>
+                            <option value="lunas">Lunas/Bayar Lebih</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-success btn-sm w-100" onclick="exportKomparasiToCSV()">
+                            <i class="bi bi-download me-1"></i>Export
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Komparasi Table -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h6 class="mb-0"><i class="bi bi-table me-2"></i>Detail Perbandingan Data</h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-transaksi mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>No</th>
+                                        <th>Nama KK</th>
+                                        <th>Alamat/RT</th>
+                                        <th class="text-center">Status Bayar</th>
+                                        <th class="text-center">Jiwa Penduduk</th>
+                                        <th class="text-center">Jiwa Transaksi</th>
+                                        <th class="text-center">Selisih</th>
+                                        <th>Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableKomparasi">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">Klik Refresh Data untuk memuat perbandingan</td>
                                     </tr>
                                 </tbody>
                             </table>

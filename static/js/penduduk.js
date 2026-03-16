@@ -4,6 +4,10 @@
 
 let isLoadingPenduduk = false;
 let cachedPendudukData = []; // Cache data penduduk untuk rangkuman
+let currentSortField = 'nama';
+let currentSortDirection = 'asc';
+let komparasiData = []; // Data hasil komparasi
+let filteredKomparasiData = []; // Data hasil komparasi yang sudah difilter
 
 /**
  * Load penduduk list from API
@@ -17,6 +21,7 @@ async function loadPendudukList(forceRefresh = false) {
         if (cached && cached.data) {
             console.log('Using cached penduduk data');
             cachedPendudukData = cached.data;
+            updateAlamatFilterOptions(cached.data);
             renderPendudukTable(cached.data);
             renderRangkuman(cached.data);
             return;
@@ -34,6 +39,7 @@ async function loadPendudukList(forceRefresh = false) {
             Cache.set('penduduk_list', penduduk);
         }
         
+        updateAlamatFilterOptions(penduduk);
         renderPendudukTable(penduduk);
         renderRangkuman(penduduk);
     } catch (error) {
@@ -44,25 +50,111 @@ async function loadPendudukList(forceRefresh = false) {
 }
 
 /**
+ * Update alamat filter options based on data
+ */
+function updateAlamatFilterOptions(penduduk) {
+    const alamatSet = new Set();
+    penduduk.forEach(p => {
+        if (p.rt && p.rt.trim()) {
+            alamatSet.add(p.rt.trim());
+        }
+    });
+    
+    const sortedAlamat = Array.from(alamatSet).sort();
+    
+    // Update filter di tab list
+    const filterAlamat = document.getElementById('filterAlamatPenduduk');
+    if (filterAlamat) {
+        const currentValue = filterAlamat.value;
+        filterAlamat.innerHTML = '<option value="">Semua Alamat/RT</option>';
+        sortedAlamat.forEach(alamat => {
+            filterAlamat.innerHTML += `<option value="${escapeHtml(alamat)}">${escapeHtml(alamat)}</option>`;
+        });
+        filterAlamat.value = currentValue;
+    }
+    
+    // Update filter di tab komparasi
+    const filterAlamatKomparasi = document.getElementById('filterAlamatKomparasi');
+    if (filterAlamatKomparasi) {
+        const currentValue = filterAlamatKomparasi.value;
+        filterAlamatKomparasi.innerHTML = '<option value="">Semua Alamat/RT</option>';
+        sortedAlamat.forEach(alamat => {
+            filterAlamatKomparasi.innerHTML += `<option value="${escapeHtml(alamat)}">${escapeHtml(alamat)}</option>`;
+        });
+        filterAlamatKomparasi.value = currentValue;
+    }
+}
+
+/**
+ * Get filtered and sorted penduduk data
+ */
+function getFilteredPendudukData(penduduk) {
+    const searchInput = document.getElementById('searchPenduduk');
+    const filterAlamat = document.getElementById('filterAlamatPenduduk');
+    const filterGolongan = document.getElementById('filterGolonganPenduduk');
+    const sortSelect = document.getElementById('sortPenduduk');
+    
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const alamatFilter = filterAlamat ? filterAlamat.value : '';
+    const golonganFilter = filterGolongan ? filterGolongan.value : '';
+    const sortField = sortSelect ? sortSelect.value : currentSortField;
+    
+    // Filter data
+    let filtered = penduduk.filter(p => {
+        const matchSearch = !searchTerm || p.nama_kk.toLowerCase().includes(searchTerm);
+        const matchAlamat = !alamatFilter || (p.rt && p.rt.trim() === alamatFilter);
+        const matchGolongan = !golonganFilter || p.golongan === golonganFilter;
+        return matchSearch && matchAlamat && matchGolongan;
+    });
+    
+    // Sort data
+    filtered.sort((a, b) => {
+        let valA, valB;
+        switch (sortField) {
+            case 'nama':
+                valA = (a.nama_kk || '').toLowerCase();
+                valB = (b.nama_kk || '').toLowerCase();
+                break;
+            case 'alamat':
+                valA = (a.rt || '').toLowerCase();
+                valB = (b.rt || '').toLowerCase();
+                break;
+            case 'golongan':
+                valA = a.golongan || '';
+                valB = b.golongan || '';
+                break;
+            case 'jiwa':
+                valA = a.jumlah_jiwa || 0;
+                valB = b.jumlah_jiwa || 0;
+                return currentSortDirection === 'asc' ? valA - valB : valB - valA;
+            default:
+                valA = (a.nama_kk || '').toLowerCase();
+                valB = (b.nama_kk || '').toLowerCase();
+        }
+        
+        if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    return filtered;
+}
+
+/**
  * Render penduduk table
  */
 function renderPendudukTable(penduduk) {
     const tbody = document.getElementById('tablePenduduk');
     if (!tbody) return;
     
-    const searchInput = document.getElementById('searchPenduduk');
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    
-    const displayData = searchTerm 
-        ? penduduk.filter(p => p.nama_kk.toLowerCase().includes(searchTerm))
-        : penduduk;
+    const displayData = getFilteredPendudukData(penduduk);
     
     if (displayData.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-muted py-4">
                     <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                    ${searchTerm ? 'Tidak ada data yang cocok dengan pencarian' : 'Tidak ada data penduduk'}
+                    Tidak ada data yang cocok dengan filter
                 </td>
             </tr>
         `;
@@ -89,6 +181,26 @@ function renderPendudukTable(penduduk) {
             </tr>
         `;
     }).join('');
+}
+
+/**
+ * Sort penduduk by field (untuk header table click)
+ */
+function sortPendudukBy(field) {
+    if (currentSortField === field) {
+        currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSortField = field;
+        currentSortDirection = 'asc';
+    }
+    
+    // Update sort select
+    const sortSelect = document.getElementById('sortPenduduk');
+    if (sortSelect) {
+        sortSelect.value = field;
+    }
+    
+    filterPenduduk();
 }
 
 /**
@@ -218,18 +330,23 @@ function renderRangkuman(penduduk) {
  * Filter penduduk table
  */
 function filterPenduduk() {
-    if (typeof Cache !== 'undefined' && Cache.get) {
+    if (cachedPendudukData.length > 0) {
+        renderPendudukTable(cachedPendudukData);
+    } else if (typeof Cache !== 'undefined' && Cache.get) {
         const cached = Cache.get('penduduk_list');
         if (cached && cached.data) {
+            cachedPendudukData = cached.data;
             renderPendudukTable(cached.data);
-            return;
+        } else {
+            loadPendudukList();
         }
+    } else {
+        loadPendudukList();
     }
-    loadPendudukList();
 }
 
 /**
- * Show penduduk tab (List | Rangkuman)
+ * Show penduduk tab (List | Rangkuman | Komparasi)
  */
 function showPendudukTab(tabName, clickedElement) {
     if (typeof event !== 'undefined') event.preventDefault();
@@ -254,6 +371,11 @@ function showPendudukTab(tabName, clickedElement) {
     // Load data if needed
     if (tabName === 'rangkuman' && cachedPendudukData.length === 0) {
         loadPendudukList();
+    }
+    
+    // Load komparasi data when opening komparasi tab
+    if (tabName === 'komparasi' && komparasiData.length === 0) {
+        loadKomparasiData();
     }
 }
 
@@ -395,4 +517,247 @@ function invalidatePendudukCache() {
         Cache.invalidate('penduduk_list');
     }
     cachedPendudukData = [];
+}
+
+// ==================== KOMPARASI DATA (BELUM BAYAR ZAKAT) ====================
+
+/**
+ * Load data komparasi antara penduduk dan transaksi fitrah
+ */
+async function loadKomparasiData() {
+    showLoading(true);
+    
+    try {
+        // Load both penduduk and transaksi data
+        const [penduduk, transaksi] = await Promise.all([
+            API.get('/api/penduduk'),
+            API.get('/api/transaksi')
+        ]);
+        
+        // Filter transaksi fitrah only
+        const transaksiFitrah = (transaksi || []).filter(t => t.jenis_zakat === 'fitrah');
+        
+        // Build map of nama_kk to transaksi (handle multiple transaksi for same KK)
+        const transaksiMap = new Map();
+        transaksiFitrah.forEach(t => {
+            const namaKK = t.nama_kk ? t.nama_kk.toLowerCase().trim() : '';
+            if (!namaKK) return;
+            
+            if (!transaksiMap.has(namaKK)) {
+                transaksiMap.set(namaKK, []);
+            }
+            transaksiMap.get(namaKK).push(t);
+        });
+        
+        // Create komparasi data
+        komparasiData = [];
+        
+        (penduduk || []).forEach(p => {
+            const namaKKLower = p.nama_kk ? p.nama_kk.toLowerCase().trim() : '';
+            const transaksiList = transaksiMap.get(namaKKLower) || [];
+            
+            // Sum total jiwa from all transaksi for this KK
+            const totalJiwaTransaksi = transaksiList.reduce((sum, t) => sum + (t.jumlah_jiwa || 0), 0);
+            const jumlahJiwaPenduduk = p.jumlah_jiwa || 0;
+            
+            let status, selisih, keterangan;
+            
+            if (transaksiList.length === 0) {
+                status = 'belum';
+                selisih = jumlahJiwaPenduduk;
+                keterangan = 'Belum melakukan pembayaran zakat fitrah';
+            } else if (totalJiwaTransaksi < jumlahJiwaPenduduk) {
+                status = 'kurang';
+                selisih = jumlahJiwaPenduduk - totalJiwaTransaksi;
+                keterangan = `Bayar untuk ${totalJiwaTransaksi} jiwa, kurang ${selisih} jiwa`;
+            } else if (totalJiwaTransaksi === jumlahJiwaPenduduk) {
+                status = 'lunas';
+                selisih = 0;
+                keterangan = 'Lunas sesuai jumlah jiwa';
+            } else {
+                status = 'lunas';
+                selisih = totalJiwaTransaksi - jumlahJiwaPenduduk;
+                keterangan = `Bayar untuk ${totalJiwaTransaksi} jiwa (lebihan ${selisih} jiwa)`;
+            }
+            
+            komparasiData.push({
+                nama_kk: p.nama_kk,
+                rt: p.rt || '-',
+                golongan: p.golongan || '-',
+                jumlah_jiwa_penduduk: jumlahJiwaPenduduk,
+                jumlah_jiwa_transaksi: totalJiwaTransaksi,
+                selisih: selisih,
+                status: status,
+                keterangan: keterangan,
+                transaksi_list: transaksiList
+            });
+        });
+        
+        // Also check for transaksi without matching penduduk
+        transaksiFitrah.forEach(t => {
+            const namaKKLower = t.nama_kk ? t.nama_kk.toLowerCase().trim() : '';
+            if (!namaKKLower) return;
+            
+            const foundInPenduduk = (penduduk || []).some(p => 
+                p.nama_kk && p.nama_kk.toLowerCase().trim() === namaKKLower
+            );
+            
+            if (!foundInPenduduk) {
+                komparasiData.push({
+                    nama_kk: t.nama_kk,
+                    rt: t.alamat || '-',
+                    golongan: '-',
+                    jumlah_jiwa_penduduk: 0,
+                    jumlah_jiwa_transaksi: t.jumlah_jiwa || 0,
+                    selisih: -(t.jumlah_jiwa || 0),
+                    status: 'tidak_terdaftar',
+                    keterangan: 'KK tidak terdaftar di data penduduk',
+                    transaksi_list: [t]
+                });
+            }
+        });
+        
+        // Update summary
+        const totalPenduduk = penduduk ? penduduk.length : 0;
+        const sudahBayar = komparasiData.filter(k => k.status === 'lunas').length;
+        const belumBayar = komparasiData.filter(k => k.status === 'belum' || k.status === 'kurang').length;
+        
+        document.getElementById('komparasiTotalPenduduk').textContent = totalPenduduk;
+        document.getElementById('komparasiSudahBayar').textContent = sudahBayar;
+        document.getElementById('komparasiBelumBayar').textContent = belumBayar;
+        
+        // Update alamat filter options
+        const alamatSet = new Set();
+        komparasiData.forEach(k => {
+            if (k.rt && k.rt !== '-') alamatSet.add(k.rt);
+        });
+        const filterAlamat = document.getElementById('filterAlamatKomparasi');
+        if (filterAlamat) {
+            const currentValue = filterAlamat.value;
+            filterAlamat.innerHTML = '<option value="">Semua Alamat/RT</option>';
+            Array.from(alamatSet).sort().forEach(alamat => {
+                filterAlamat.innerHTML += `<option value="${escapeHtml(alamat)}">${escapeHtml(alamat)}</option>`;
+            });
+            filterAlamat.value = currentValue;
+        }
+        
+        // Render table
+        filterKomparasi();
+        
+        showToast('Data komparasi berhasil dimuat', 'success');
+    } catch (error) {
+        showToast('Gagal memuat data komparasi: ' + error.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+/**
+ * Filter and render komparasi table
+ */
+function filterKomparasi() {
+    const searchInput = document.getElementById('searchKomparasi');
+    const filterAlamat = document.getElementById('filterAlamatKomparasi');
+    const filterStatus = document.getElementById('filterStatusKomparasi');
+    
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const alamatValue = filterAlamat ? filterAlamat.value : '';
+    const statusValue = filterStatus ? filterStatus.value : '';
+    
+    filteredKomparasiData = komparasiData.filter(k => {
+        const matchSearch = !searchTerm || k.nama_kk.toLowerCase().includes(searchTerm);
+        const matchAlamat = !alamatValue || k.rt === alamatValue;
+        const matchStatus = !statusValue || k.status === statusValue;
+        return matchSearch && matchAlamat && matchStatus;
+    });
+    
+    renderKomparasiTable();
+}
+
+/**
+ * Render komparasi table
+ */
+function renderKomparasiTable() {
+    const tbody = document.getElementById('tableKomparasi');
+    if (!tbody) return;
+    
+    if (filteredKomparasiData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                    Tidak ada data yang cocok dengan filter
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = filteredKomparasiData.map((k, index) => {
+        const statusBadge = getKomparasiStatusBadge(k.status);
+        const selisihClass = k.selisih > 0 ? 'text-danger fw-bold' : (k.selisih < 0 ? 'text-success' : 'text-muted');
+        const selisihText = k.selisih > 0 ? `+${k.selisih}` : (k.selisih < 0 ? `${k.selisih}` : '-');
+        
+        return `
+            <tr class="${k.status === 'belum' || k.status === 'kurang' ? 'table-warning' : ''}">
+                <td>${index + 1}</td>
+                <td><strong>${escapeHtml(k.nama_kk)}</strong></td>
+                <td>${escapeHtml(k.rt)}</td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-center">${k.jumlah_jiwa_penduduk}</td>
+                <td class="text-center">${k.jumlah_jiwa_transaksi || '-'}</td>
+                <td class="text-center ${selisihClass}">${selisihText}</td>
+                <td><small class="text-muted">${escapeHtml(k.keterangan)}</small></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+/**
+ * Get status badge for komparasi
+ */
+function getKomparasiStatusBadge(status) {
+    const badges = {
+        'belum': '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Belum Bayar</span>',
+        'kurang': '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle me-1"></i>Kurang</span>',
+        'lunas': '<span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Lunas</span>',
+        'tidak_terdaftar': '<span class="badge bg-secondary"><i class="bi bi-question-circle me-1"></i>Tidak Terdaftar</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">-</span>';
+}
+
+/**
+ * Export komparasi data to CSV
+ */
+function exportKomparasiToCSV() {
+    if (filteredKomparasiData.length === 0) {
+        showToast('Tidak ada data untuk diexport', 'warning');
+        return;
+    }
+    
+    const headers = ['No', 'Nama KK', 'Alamat/RT', 'Status', 'Jiwa Penduduk', 'Jiwa Transaksi', 'Selisih', 'Keterangan'];
+    const rows = filteredKomparasiData.map((k, index) => [
+        index + 1,
+        k.nama_kk,
+        k.rt,
+        k.status === 'belum' ? 'Belum Bayar' : (k.status === 'kurang' ? 'Kurang' : (k.status === 'lunas' ? 'Lunas' : 'Tidak Terdaftar')),
+        k.jumlah_jiwa_penduduk,
+        k.jumlah_jiwa_transaksi,
+        k.selisih,
+        k.keterangan
+    ]);
+    
+    let csv = '\uFEFF'; // BOM for Excel
+    csv += headers.join(';') + '\n';
+    rows.forEach(row => {
+        csv += row.join(';') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `komparasi_zakat_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    showToast('Data berhasil diexport ke CSV', 'success');
 }
