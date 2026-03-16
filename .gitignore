@@ -9,6 +9,8 @@ coverage/
 .DS_Store
 AGENTS.md
 requirement.md
+DEPLOY_FLYIO.md
+API_TEST.md
 
 # Binaries
 bin/

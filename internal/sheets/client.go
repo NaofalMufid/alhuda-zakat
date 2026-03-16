@@ -25,9 +25,24 @@ type Client struct {
 func NewClient(credentialsPath, spreadsheetID string) (*Client, error) {
 	ctx := context.Background()
 
-	srv, err := sheets.NewService(ctx, option.WithCredentialsFile(credentialsPath))
-	if err != nil {
-		return nil, fmt.Errorf("unable to create sheets service: %v", err)
+	var srv *sheets.Service
+	var err error
+
+	// Check if credentials JSON is provided via environment variable
+	if credsJSON := os.Getenv("GOOGLE_CREDENTIALS_JSON"); credsJSON != "" {
+		// Use credentials from environment variable
+		srv, err = sheets.NewService(ctx, option.WithCredentialsJSON([]byte(credsJSON)))
+		if err != nil {
+			return nil, fmt.Errorf("unable to create sheets service from env var: %v", err)
+		}
+	} else if credentialsPath != "" {
+		// Use credentials from file
+		srv, err = sheets.NewService(ctx, option.WithCredentialsFile(credentialsPath))
+		if err != nil {
+			return nil, fmt.Errorf("unable to create sheets service from file: %v", err)
+		}
+	} else {
+		return nil, fmt.Errorf("no credentials provided: set GOOGLE_CREDENTIALS_JSON env var or GOOGLE_CREDENTIALS_PATH")
 	}
 
 	return &Client{

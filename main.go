@@ -27,19 +27,25 @@ func main() {
 	}
 
 	credentialsPath := os.Getenv("GOOGLE_CREDENTIALS_PATH")
-	if credentialsPath == "" {
-		credentialsPath = "credentials/gopal-a5ec7-73c6137bd229.json"
+	credsFromEnv := os.Getenv("GOOGLE_CREDENTIALS_JSON")
+	
+	if credsFromEnv != "" {
+		fmt.Println("📁 Using credentials from GOOGLE_CREDENTIALS_JSON environment variable")
+	} else if credentialsPath != "" {
+		fmt.Printf("📁 Using credentials from file: %s\n", credentialsPath)
+		// Check credentials file exists
+		if _, err := os.Stat(credentialsPath); os.IsNotExist(err) {
+			log.Fatalf("❌ Credentials file not found at: %s", credentialsPath)
+		}
+	} else {
+		// Default path
+		credentialsPath = "credentials/service-account.json"
+		fmt.Printf("📁 Using default credentials path: %s\n", credentialsPath)
 	}
-	fmt.Printf("📁 Using credentials: %s\n", credentialsPath)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
-	}
-
-	// Check credentials file exists
-	if _, err := os.Stat(credentialsPath); os.IsNotExist(err) {
-		log.Fatalf("❌ Credentials file not found at: %s", credentialsPath)
 	}
 
 	// Initialize Google Sheets client
