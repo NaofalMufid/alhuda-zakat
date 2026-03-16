@@ -68,6 +68,7 @@ func main() {
 	transaksiHandler := handlers.NewTransaksiHandler(client)
 	laporanHandler := handlers.NewLaporanHandler(client)
 	authHandler := handlers.NewAuthHandler(client)
+	kartuHandler := handlers.NewKartuHandler(client)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -109,6 +110,7 @@ func main() {
 			// Master data (admin only)
 			r.Mount("/penduduk", pendudukHandler.Routes())
 			r.Mount("/master", masterHandler.Routes())
+			r.Mount("/kartu", kartuHandler.Routes())
 
 			// Transactions - POST/PUT/DELETE (admin only)
 			r.Post("/transaksi", transaksiHandler.Create)
@@ -154,6 +156,7 @@ func main() {
 	fmt.Println("  POST /api/transaksi          - Create new transaction")
 	fmt.Println("  PUT  /api/transaksi/{id}     - Update transaction")
 	fmt.Println("  DELETE /api/transaksi/{id}   - Delete transaction")
+	fmt.Println("  GET  /api/kartu/penduduk     - Get penduduk for kartu (kategori != G)")
 	fmt.Println("=====================")
 
 	fmt.Printf("\n🚀 Server starting on http://localhost:%s\n", port)
