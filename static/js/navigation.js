@@ -7,7 +7,7 @@ const DEFAULT_PAGE = 'laporan';
 
 function showPage(pageName) {
     // Cek jika halaman protected dan user belum login
-    const protectedPages = ['fitrah', 'mal', 'penduduk'];
+    const protectedPages = ['fitrah', 'mal', 'penduduk', 'kartu'];
     if (protectedPages.includes(pageName) && typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
         showToast('info', 'Silakan login untuk mengakses halaman tersebut');
         showLoginModal();
@@ -39,6 +39,8 @@ function showPage(pageName) {
         // Reset to list tab when navigating to penduduk page
         const listTab = document.querySelector('#pendudukSubNav [data-tab="list"]');
         if (listTab) showPendudukTab('list', listTab);
+    } else if (pageName === 'kartu') {
+        initKartuPage();
     } else if (pageName === 'fitrah' || pageName === 'mal') {
         // Load transaksi list jika tab list aktif
         const tabList = document.getElementById(`${pageName}-tab-list`);
@@ -67,11 +69,11 @@ function updateActiveNav(pageName) {
 function initNavigation() {
     // Cek URL hash untuk direct link
     const hash = window.location.hash.replace('#', '');
-    const validPages = ['fitrah', 'mal', 'laporan', 'penduduk'];
+    const validPages = ['fitrah', 'mal', 'laporan', 'penduduk', 'kartu'];
     
     if (hash && validPages.includes(hash)) {
         // Cek akses untuk protected pages
-        const protectedPages = ['fitrah', 'mal', 'penduduk'];
+        const protectedPages = ['fitrah', 'mal', 'penduduk', 'kartu'];
         if (protectedPages.includes(hash) && typeof Auth !== 'undefined' && !Auth.isLoggedIn()) {
             showPage('laporan');
         } else {

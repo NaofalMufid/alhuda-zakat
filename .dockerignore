@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Environment files (jangan bawa ke image)
+.env
+.env.local
+
+# Credentials (akan di-mount via volume)
+credentials/*.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+API_TEST.md
+requirement.md
+AGENTS.md
+
+# Misc
+*.md

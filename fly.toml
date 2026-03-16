@@ -1,0 +1,25 @@
+# Fly.io Configuration for Zakat Web App
+# Ganti 'zakat-web-app' dengan nama app yang kamu daftarkan di fly.io
+app = "zakat-web-app"
+
+# Region: 'sin' (Singapore), 'ams' (Amsterdam), 'iad' (Virginia), 'nrt' (Tokyo), dll
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  # GOOGLE_CREDENTIALS_JSON, SPREADSHEET_ID, dan JWT_SECRET akan di-set via fly secrets
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[vm]
+  size = "shared-cpu-1x"
+  memory = "256mb"
